@@ -1,140 +1,39 @@
 'use strict';
 const NODE_W=150,NODE_H=152,GAP_X=30,GAP_Y=88,PAD=16;
 function computeLayout(data) {
-    const people = data.people;
-    const ids = new Set(people.map(p => p.id));
-    const partnersOf = new Map();
-    const addPartner = (a,b) => {
-        const list = partnersOf.get(a) || [];
-        list.push(b);
-        partnersOf.set(a, list);
-    };
-    for (const [a, b] of data.partners) {
-        if (!ids.has(a) || !ids.has(b) || a === b) continue;
-        addPartner(a, b);
-        addPartner(b, a);
-    }
+    const ids = new Set(data.people.map(p => p.id));
     const edges = data.edges.filter(e => ids.has(e.p) && ids.has(e.c) && e.p !== e.c);
-    const gen = new Map(people.map(p => [p.id, 0]));
-    for (let i = 0; i < people.length + 2; i++) {
-        for (const [a, b] of data.partners) {
-            if (!ids.has(a) || !ids.has(b)) continue;
-            const g = Math.max(gen.get(a), gen.get(b));
-            gen.set(a, g);
-            gen.set(b, g);
-        }
-        for (const e of edges) gen.set(e.c, Math.max(gen.get(e.c), gen.get(e.p) + 1));
+    const pairs = data.partners.filter(([a,b]) => ids.has(a) && ids.has(b) && a !== b);
+    // Partner groups stay together on a generation row.
+    const leader = new Map([...ids].map(id => [id,id]));
+    function root(id){while(leader.get(id)!==id)id=leader.get(id);return id;}
+    for(const [a,b] of pairs)leader.set(root(b),root(a));
+    const units=[],personUnit=new Map(),unitByRoot=new Map();
+    for(const p of data.people){const r=root(p.id);if(!unitByRoot.has(r)){unitByRoot.set(r,units.length);units.push({members:[],rank:0});}const u=unitByRoot.get(r);units[u].members.push(p.id);personUnit.set(p.id,u);}
+    const links=[...new Map(edges.map(e=>{const a=personUnit.get(e.p),b=personUnit.get(e.c);return [a+':'+b,{a,b}];})).values()].filter(e=>e.a!==e.b);
+    // Longest ancestor depth gives every row the same vertical step.
+    for(let pass=0;pass<units.length*2;pass++){let changed=false;for(const {a,b} of links){const rank=Math.min(units.length-1,units[a].rank+1);if(units[b].rank<rank){units[b].rank=rank;changed=true;}const parentRank=Math.max(0,units[b].rank-1);if(units[a].rank<parentRank){units[a].rank=parentRank;changed=true;}}if(!changed)break;}
+    const neighbors=units.map(()=>new Set());for(const {a,b} of links){neighbors[a].add(b);neighbors[b].add(a);}
+    const components=[],seen=new Set();for(let u=0;u<units.length;u++){if(seen.has(u))continue;const group=[],queue=[u];seen.add(u);for(let i=0;i<queue.length;i++){const v=queue[i];group.push(v);for(const n of neighbors[v])if(!seen.has(n)){seen.add(n);queue.push(n);}}components.push(group);}
+    const pos=new Map();let offset=0,right=PAD*2+NODE_W,bottom=PAD*2+NODE_H;
+    const step=NODE_W+GAP_X;
+    for(const group of components){
+        const minRank=Math.min(...group.map(u=>units[u].rank)),rows=new Map();
+        for(const u of group){const r=units[u].rank-minRank;if(!rows.has(r))rows.set(r,[]);rows.get(r).push(u);}
+        const ranks=[...rows.keys()].sort((a,b)=>a-b),maxSlots=Math.max(...[...rows.values()].map(row=>row.reduce((n,u)=>n+units[u].members.length,0)));
+        const centers=new Map();
+        function locate(){for(const row of rows.values()){const count=row.reduce((n,u)=>n+units[u].members.length,0);let slot=(maxSlots-count)/2;for(const u of row){centers.set(u,slot+(units[u].members.length-1)/2);slot+=units[u].members.length;}}}
+        locate();
+        // Order connected groups by the centers of neighboring generations.
+        // Slots remain equally spaced; only ordering changes.
+        for(let pass=0;pass<6;pass++){const order=pass%2?[...ranks].reverse():ranks;for(const r of order){const row=rows.get(r);const score=u=>{const ns=[...neighbors[u]].filter(n=>centers.has(n)&&units[n].rank!==units[u].rank);return ns.length?ns.reduce((s,n)=>s+centers.get(n),0)/ns.length:centers.get(u);};const scores=new Map(row.map(u=>[u,score(u)]));row.sort((a,b)=>scores.get(a)-scores.get(b));locate();}}
+        for(const [r,row] of rows){const count=row.reduce((n,u)=>n+units[u].members.length,0);let slot=(maxSlots-count)/2;for(const u of row){for(const id of units[u].members){const x=PAD+offset+slot*step,y=PAD+r*(NODE_H+GAP_Y);pos.set(id,{x,y});right=Math.max(right,x+NODE_W+PAD);bottom=Math.max(bottom,y+NODE_H+PAD);slot++;}}}
+        offset+=maxSlots*step+GAP_X;
     }
-    const units = [];
-    const personUnit = new Map();
-    const seen = new Set();
-    for (const p of people) {
-        if (seen.has(p.id)) continue;
-        const members = [p.id];
-        seen.add(p.id);
-        const q = (partnersOf.get(p.id) || []).find(x => !seen.has(x));
-        if (q) {
-            members.push(q);
-            seen.add(q);
-        }
-        for (const m of members) personUnit.set(m, units.length);
-        units.push({ members, children: [] });
-    }
-    const unitClaimed = new Set();
-    for (const e of edges) {
-        const u = personUnit.get(e.p);
-        const v = personUnit.get(e.c);
-        if (u === v || unitClaimed.has(v)) continue;
-        unitClaimed.add(v);
-        units[u].children.push(e.c);
-    }
-    const widthMemo = new Map();
-    const visiting = new Set();
-    const widthOf = (u) => {
-        const memo = widthMemo.get(u);
-        if (memo !== undefined) return memo;
-        if (visiting.has(u)) return units[u].members.length;
-        visiting.add(u);
-        const childWidth = units[u].children.reduce((s, c) => s + widthOf(personUnit.get(c)), 0);
-        visiting.delete(u);
-        const w = Math.max(units[u].members.length, childWidth);
-        widthMemo.set(u, w);
-        return w;
-    };
-    const slotPos = new Map();
-    const placed = new Set();
-    const place = (u,left) => {
-        if (placed.has(u)) return;
-        placed.add(u);
-        const unit = units[u];
-        const w = widthOf(u);
-        const childTotal = unit.children.reduce((s, c) => s + widthOf(personUnit.get(c)), 0);
-        const memberStart = left + (w - unit.members.length) / 2;
-        unit.members.forEach((m, i) => slotPos.set(m, { x: memberStart + i, y: gen.get(m) }));
-        let childLeft = left + (w - childTotal) / 2;
-        for (const c of unit.children) {
-            const v = personUnit.get(c);
-            const cw = widthOf(v);
-            place(v, childLeft);
-            childLeft += cw;
-        }
-    };
-    let rootLeft = 0;
-    // Lay out ancestors first, even if they were added after their children.
-    // Otherwise a child is placed as a root and cannot move under a new parent.
-    const childUnits = new Set(edges.map(e => personUnit.get(e.c)).filter((u, i) => u !== personUnit.get(edges[i].p)));
-    const placeRoot = (u) => {
-        if (placed.has(u)) return;
-        place(u, rootLeft);
-        rootLeft += widthOf(u) + 1;
-    };
-    units.forEach((_, u) => { if (!childUnits.has(u)) placeRoot(u); });
-    // Keep malformed/cyclic imports visible rather than dropping their nodes.
-    units.forEach((_, u) => placeRoot(u));
-    const px = (sx) => PAD + sx * (NODE_W + GAP_X);
-    const py = (gy) => PAD + gy * (NODE_H + GAP_Y);
-    const pos = new Map();
-    let right = PAD * 2 + NODE_W;
-    let bottom = PAD * 2 + NODE_H;
-    for (const [id, s] of slotPos) {
-        const x = px(s.x);
-        const y = py(s.y);
-        pos.set(id, { x, y });
-        right = Math.max(right, x + NODE_W + PAD);
-        bottom = Math.max(bottom, y + NODE_H + PAD);
-    }
-    const center = (id) => {
-        const p = pos.get(id);
-        return { cx: p.x + NODE_W / 2, cy: p.y + 48, top: p.y, bottom: p.y + 96 };
-    };
-    const partnerLines = [];
-    const drawnPairs = new Set();
-    for (const [a, b] of data.partners) {
-        if (!pos.has(a) || !pos.has(b)) continue;
-        const key = [a, b].sort().join('|');
-        if (drawnPairs.has(key)) continue;
-        drawnPairs.add(key);
-        const ca = center(a);
-        const cb = center(b);
-        partnerLines.push({ x1: ca.cx, y1: ca.cy, x2: cb.cx, y2: cb.cy });
-    }
-    const childPaths = [];
-    units.forEach((unit, u) => {
-        // Layout chooses one ancestor group to position a child. Drawing must
-        // still include every recorded parent, including unpartnered parents.
-        const children = [...new Set(edges.filter(e => personUnit.get(e.p) === u && personUnit.get(e.c) !== u).map(e => e.c))];
-        if (children.length === 0) return;
-        const bottoms = unit.members.map(m => center(m).bottom);
-        const cxs = unit.members.map(m => center(m).cx);
-        const fromY = unit.members.length > 1 ? Math.max(...bottoms) - 48 : Math.max(...bottoms);
-        const fromX = cxs.reduce((s, x) => s + x, 0) / cxs.length;
-        const midY = Math.max(...bottoms) + 62;
-        for (const c of children) {
-            const cc = center(c);
-            childPaths.push(`M ${fromX} ${fromY} V ${midY} H ${cc.cx} V ${cc.top}`);
-        }
-    });
-    return { pos, partnerLines, childPaths, width: right, height: bottom };
+    const center=id=>{const p=pos.get(id);return {cx:p.x+NODE_W/2,cy:p.y+48,top:p.y,bottom:p.y+96};};
+    const partnerLines=[],drawn=new Set();for(const [a,b] of pairs){const key=[a,b].sort().join(':');if(drawn.has(key))continue;drawn.add(key);const ca=center(a),cb=center(b);partnerLines.push({x1:ca.cx,y1:ca.cy,x2:cb.cx,y2:cb.cy});}
+    const childPaths=[],laneByRank=new Map();for(let u=0;u<units.length;u++){const children=[...new Set(edges.filter(e=>personUnit.get(e.p)===u&&personUnit.get(e.c)!==u).map(e=>e.c))];if(!children.length)continue;const rank=units[u].rank,lane=laneByRank.get(rank)||0;laneByRank.set(rank,lane+1);const members=units[u].members.map(center),fromX=members.reduce((s,p)=>s+p.cx,0)/members.length,fromY=Math.max(...members.map(p=>p.bottom))-(members.length>1?48:0),midY=Math.max(...members.map(p=>p.bottom))+42+((lane%8)*10);for(const c of children){const cc=center(c);childPaths.push(`M ${fromX} ${fromY} V ${midY} H ${cc.cx} V ${cc.top}`);}}
+    return {pos,partnerLines,childPaths,width:right,height:bottom};
 }
 
 const config=window.FAMILYTREE_CONFIG||{};
