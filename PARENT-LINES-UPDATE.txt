@@ -1,0 +1,14 @@
+Parent connection and cleaner screen update
+
+Replace only index.html and app.js in michagal2/Familytree.
+Keep style.css, config.js and supabase-setup.sql unchanged.
+
+1. Export a backup of your family tree first.
+2. Download and extract this ZIP in Android Files.
+3. Open github.com/michagal2/Familytree in Chrome. Use Desktop site if needed.
+4. Add file > Upload files > select the extracted index.html and app.js together.
+5. Commit to main, wait for Pages to publish, then refresh your existing tree link.
+
+This removes the header/introduction and yellow setup notice above the tree. Save/error feedback and share-link controls remain available.
+The connection renderer now includes every recorded parent relationship, even when parents are not linked as partners. Existing relationships need not be added again if they were already saved; their missing lines will appear after the update.
+Cropping and the earlier geometry fix are preserved. No SQL update is needed.

@@ -1,9 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Family tree</title><link rel="stylesheet" href="style.css"></head>
 <body><main>
-<header><p class="eyebrow">Our family</p><h1>Your family tree</h1><p>Add relatives, upload portraits, and connect partners, parents and children. Portraits and edits are saved on this browser. Export a backup to keep a portable copy.</p></header>
 <div class="toolbar"><button id="add" class="primary">Add a person</button><button id="share">Create share link</button><button id="retry">Retry save</button><button id="export">Export backup</button><button id="import">Import backup</button><input id="backup" type="file" accept="application/json,.json" hidden></div>
-<p id="status" role="status"></p><p class="service-note">Shared editing needs the Supabase setup in README.md. Until configured, edit locally and export backups. Anyone with a complete tree link can edit records and photos.</p><div id="sharebox" hidden><label for="shareurl">Shared tree link</label><input id="shareurl" readonly><p class="hint">Anyone with this link can view, edit and remove people and photos. Do not use it for sensitive family information.</p></div>
+<p id="status" role="status"></p><div id="sharebox" hidden><label for="shareurl">Shared tree link</label><input id="shareurl" readonly></div>
 <div id="empty"><div class="empty-symbol">🌳</div><h2>Every family starts with someone</h2><p>Add yourself or a relative, then select their circle to add family around them.</p></div>
 <div id="scroll" aria-label="Family tree diagram"><div id="canvas"></div></div>
 <p class="hint">Tap a circle to edit a person. Swipe sideways to explore a larger tree. Solid lines connect partners; branching lines connect parents and children.</p>

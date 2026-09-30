@@ -119,14 +119,17 @@ function computeLayout(data) {
         partnerLines.push({ x1: ca.cx, y1: ca.cy, x2: cb.cx, y2: cb.cy });
     }
     const childPaths = [];
-    units.forEach(unit => {
-        if (unit.children.length === 0) return;
+    units.forEach((unit, u) => {
+        // Layout chooses one ancestor group to position a child. Drawing must
+        // still include every recorded parent, including unpartnered parents.
+        const children = [...new Set(edges.filter(e => personUnit.get(e.p) === u && personUnit.get(e.c) !== u).map(e => e.c))];
+        if (children.length === 0) return;
         const bottoms = unit.members.map(m => center(m).bottom);
         const cxs = unit.members.map(m => center(m).cx);
         const fromY = unit.members.length > 1 ? Math.max(...bottoms) - 48 : Math.max(...bottoms);
         const fromX = cxs.reduce((s, x) => s + x, 0) / cxs.length;
         const midY = Math.max(...bottoms) + 62;
-        for (const c of unit.children) {
+        for (const c of children) {
             const cc = center(c);
             childPaths.push(`M ${fromX} ${fromY} V ${midY} H ${cc.cx} V ${cc.top}`);
         }
@@ -147,7 +150,7 @@ function initials(name){return name.trim().split(/\s+/).slice(0,2).map(s=>s[0]||
 async function rpc(name,params){if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(config.supabaseUrl)||!config.publishableKey?.startsWith('sb_publishable_'))throw Error('Supabase is not configured yet. Follow README.md.');if(new Blob([JSON.stringify(params)]).size>4900000)throw Error('Tree exceeds the 5 MB limit. Export a backup before removing photos.');const res=await fetch(config.supabaseUrl+'/rest/v1/rpc/familytree_'+name,{method:'POST',headers:{apikey:config.publishableKey,'Content-Type':'application/json'},body:JSON.stringify(params)});const result=await res.json();if(!res.ok){const e=Error(result.message||'Shared tree request failed');e.code=result.code;throw e;}return result;}
 function valid(d){return d&&Array.isArray(d.people)&&d.people.length<5000&&d.people.every(p=>p&&typeof p.id==='string'&&typeof p.name==='string')&&Array.isArray(d.partners)&&d.partners.every(p=>Array.isArray(p)&&p.length===2&&p.every(x=>typeof x==='string'))&&Array.isArray(d.edges)&&d.edges.every(e=>e&&typeof e.p==='string'&&typeof e.c==='string');}
 function sharedUrl(){const u=new URL(location.href);u.search='';u.hash='';u.searchParams.set('tree',treeId);u.hash='edit='+accessToken;return u.href;}
-function showShare(){if(treeId){document.querySelector('header p:last-child').textContent='Build this tree together. Everyone with the complete share link can edit people, relationships and portraits.';$('share').textContent='Copy share link';$('sharebox').hidden=false;$('shareurl').value=sharedUrl();}}
+function showShare(){if(treeId){$('share').textContent='Copy share link';$('sharebox').hidden=false;$('shareurl').value=sharedUrl();}}
 async function push(){if(!treeId||!dirty||saving||conflict)return;saving=true;const snapshot=JSON.parse(JSON.stringify(doc));try{const result=await rpc('save',{p_id:treeId,p_token:accessToken,p_version:serverVersion,p_payload:snapshot});serverVersion=result.version;if(doc.rev===snapshot.rev)dirty=false;status('Shared tree saved.');}catch(e){if(e.code==='40001')conflict=true;status(e.message+' Export a backup before reloading.',true);}finally{saving=false;if(dirty&&!conflict)status('Unsaved edits. Use Retry save or export a backup.',true);}}
 async function pull(){if(!treeId||saving)return;if(dirty){await push();return;}try{if(!accessToken)throw Error('This link is missing its edit token. Ask for the complete link.');const result=await rpc('get',{p_id:treeId,p_token:accessToken});if(!valid(result.payload))throw Error('Invalid family tree');doc=result.payload;serverVersion=result.version;conflict=false;render();showShare();status('Shared tree loaded. Everyone with the complete link can edit.');}catch(e){status(e.message,true);}}
 function update(next){doc={...next,rev:doc.rev+1};dirty=true;render();if(!treeId){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(doc));dirty=false;}catch{status('This browser could not save the tree. Export a backup.',true);}}if(treeId){clearTimeout(timer);timer=setTimeout(push,700);status('Saving shared changes…');}else status(dirty?'Local save failed. Export a backup before leaving.':'Saved on this browser only. Export a backup or create a share link.');}
