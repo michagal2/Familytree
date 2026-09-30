@@ -1,0 +1,24 @@
+Photo cropping and tree geometry update
+
+Replace only these three files in michagal2/Familytree:
+  index.html
+  app.js
+  style.css
+
+Leave config.js and supabase-setup.sql unchanged. No database update is needed.
+
+On Android:
+1. Download this ZIP and extract it using your phone's Files app.
+2. Open github.com/michagal2/Familytree in Chrome, signed into your account.
+3. If needed, turn on Chrome menu > Desktop site.
+4. In the repository, choose Add file > Upload files.
+5. Select the three extracted files listed above, not the ZIP or the enclosing folder.
+6. Commit the changes to main together. Existing files with these names are replaced.
+7. Wait for GitHub Pages to finish publishing, then refresh your existing family tree link.
+
+Upload or replace a portrait: drag the photo, adjust Zoom or the position sliders, then tap Use this crop. Cancel leaves the old portrait untouched.
+Adjust crop reuses the saved 240x240 portrait. To recover areas outside its previous crop, upload the original again.
+
+Existing family data and share links are not changed by these file replacements. Export a backup before updating as a precaution.
+
+The tree geometry refreshes after adding people. New parents are placed above their children, relationships redraw, and the view moves sideways to the new person.
