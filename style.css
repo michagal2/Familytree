@@ -8,12 +8,14 @@
 
 .node{cursor:grab;touch-action:none}.node:active{cursor:grabbing}#resetpersonposition{margin-bottom:16px}
 
-#canvas{background-image:radial-gradient(circle,#b8c9bf 1px,transparent 1px);background-size:90px 120px;background-position:46px 4px}#familydescription{padding:14px;background:var(--soft);border-radius:10px;margin-bottom:16px}#familydescription h3{font-size:16px;margin:0}#familydescription ul{margin:6px 0 14px;padding-left:20px}#familydescription li{margin:4px 0}#familydescription button{padding:4px 10px;min-height:36px}#relative select,#relative input{margin-bottom:14px}
+#familydescription{padding:14px;background:var(--soft);border-radius:10px;margin-bottom:16px}#familydescription h3{font-size:16px;margin:0}#familydescription ul{margin:6px 0 14px;padding-left:20px}#familydescription li{margin:4px 0}#familydescription button{padding:4px 10px;min-height:36px}#relative select,#relative input{margin-bottom:14px}
 
-#canvas{background:none}#treestage{background-image:radial-gradient(circle,#c6d4cb 1px,transparent 1px);background-size:90px 120px}.links{overflow:visible}
+#canvas{background:none}.links{overflow:visible}
 
 #treestage{overflow:hidden}
 
 .checkbox-row{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.checkbox-row input{width:20px;height:20px}#deathdatebox{margin-bottom:16px}#birthdate,#deathdate{max-width:100%;min-width:0}
 
 #savewarning{border:2px solid #a42626;background:#fff0ed;color:#812020;padding:16px;border-radius:10px;font-weight:600;margin:16px 0;position:sticky;bottom:12px;z-index:5}
+
+#authuser{font-size:13px;color:var(--muted);align-self:center}

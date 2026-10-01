@@ -1,0 +1,2 @@
+Files changed: index.html, app.js, style.css (full files). New, run in Supabase SQL Editor: supabase-google-auth.sql, then supabase-allow-email.sql.
+Grid dots removed; drag-snap unchanged. Local-only tree needs no sign-in.
