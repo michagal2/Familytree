@@ -13,3 +13,7 @@
 #canvas{background:none}#treestage{background-image:radial-gradient(circle,#c6d4cb 1px,transparent 1px);background-size:90px 120px}.links{overflow:visible}
 
 #treestage{overflow:hidden}
+
+.checkbox-row{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.checkbox-row input{width:20px;height:20px}#deathdatebox{margin-bottom:16px}#birthdate,#deathdate{max-width:100%;min-width:0}
+
+#savewarning{border:2px solid #a42626;background:#fff0ed;color:#812020;padding:16px;border-radius:10px;font-weight:600;margin:16px 0;position:sticky;bottom:12px;z-index:5}
